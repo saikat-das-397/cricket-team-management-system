@@ -1,43 +1,64 @@
+from models.player import Player
+
+
 class Team:
+    """
+    Represents a cricket team and manages its players.
+    """
 
-    def __init__(self, team_name):
-        self.team_name = team_name
-        self.players = []
+    def __init__(self, team_name: str):
+        self.__team_name = team_name
+        self.__players = []
 
-    # --------------------------
-    # Add Player
-    # --------------------------
-    def add_player(self, player):
+    # ==========================================
+    # Getters
+    # ==========================================
 
-        # Prevent duplicate names
-        if self.search_player(player.get_name()) is not None:
+    def get_team_name(self) -> str:
+        return self.__team_name
+
+    def get_players(self) -> list:
+        return self.__players
+
+    def player_count(self) -> int:
+        return len(self.__players)
+
+    # ==========================================
+    # Player Management
+    # ==========================================
+
+    def add_player(self, player: Player) -> bool:
+        """
+        Add a player if the name is unique.
+        """
+
+        if self.search_player(player.get_name()):
             return False
 
-        self.players.append(player)
+        self.__players.append(player)
         return True
 
-    # --------------------------
-    # Get Players
-    # --------------------------
-    def get_players(self):
-        return self.players
+    def search_player(self, name: str) -> Player | None:
+        """
+        Search player by name.
+        """
 
-    # --------------------------
-    # Search Player
-    # --------------------------
-    def search_player(self, name):
-
-        for player in self.players:
+        for player in self.__players:
 
             if player.get_name().lower() == name.lower():
                 return player
 
         return None
 
-    # --------------------------
-    # Update Player
-    # --------------------------
-    def update_player(self, name, runs, balls):
+    def update_player(
+        self,
+        name: str,
+        runs: int,
+        balls: int
+    ) -> bool:
+        """
+        Update player's runs and balls.
+        """
 
         player = self.search_player(name)
 
@@ -49,118 +70,60 @@ class Team:
 
         return True
 
-    # --------------------------
-    # Delete Player
-    # --------------------------
-    def delete_player(self, name):
+    def delete_player(self, name: str) -> bool:
+        """
+        Delete player by name.
+        """
 
         player = self.search_player(name)
 
         if player is None:
             return False
 
-        self.players.remove(player)
+        self.__players.remove(player)
 
         return True
 
-    # --------------------------
-    # Display Scorecard
-    # --------------------------
-    def display_scorecard(self):
+    # ==========================================
+    # Utility Methods
+    # ==========================================
 
-        if len(self.players) == 0:
+    def sort_by_runs(self, reverse=True) -> None:
+        """
+        Sort players by runs.
+        """
 
-            print("\nNo players available.\n")
-            return
-
-        print("\n" + "=" * 65)
-        print(f"Team : {self.team_name}")
-        print("=" * 65)
-
-        print(f"{'Player':<25}{'Runs':<10}{'Balls':<10}Strike Rate")
-        print("-" * 65)
-
-        for player in self.players:
-            player.display()
-
-        print("=" * 65)
-
-    # --------------------------
-    # Highest Scorer
-    # --------------------------
-    def highest_scorer(self):
-
-        if len(self.players) == 0:
-            return None
-
-        return max(self.players, key=lambda player: player.get_runs())
-
-    # --------------------------
-    # Sort Players
-    # --------------------------
-    def sort_players(self):
-
-        self.players.sort(
+        self.__players.sort(
             key=lambda player: player.get_runs(),
-            reverse=True
+            reverse=reverse
         )
 
-    # --------------------------
-    # Team Statistics
-    # --------------------------
-    def team_statistics(self):
+    def clear(self) -> None:
+        """
+        Remove all players.
+        """
 
-        if len(self.players) == 0:
-            return None
+        self.__players.clear()
 
-        total_runs = sum(player.get_runs() for player in self.players)
+    def is_empty(self) -> bool:
+        """
+        Check whether the team has players.
+        """
 
-        total_balls = sum(player.get_balls() for player in self.players)
+        return len(self.__players) == 0
 
-        average_sr = (
-            sum(player.strike_rate() for player in self.players)
-            / len(self.players)
+    # ==========================================
+    # Magic Methods
+    # ==========================================
+
+    def __len__(self):
+        return len(self.__players)
+
+    def __iter__(self):
+        return iter(self.__players)
+
+    def __str__(self):
+        return (
+            f"Team: {self.__team_name} "
+            f"({len(self.__players)} players)"
         )
-
-        highest = self.highest_scorer()
-
-        return {
-            "Players": len(self.players),
-            "Total Runs": total_runs,
-            "Total Balls": total_balls,
-            "Average Strike Rate": round(average_sr, 2),
-            "Highest Scorer": highest.get_name(),
-            "Highest Runs": highest.get_runs()
-        }
-
-
-    def show_player(self, name):
-
-        player = self.search_player(name)
-
-        if player:
-
-            print("\nPlayer Details")
-            print("-" * 30)
-
-            player.display_details()
-
-            return True
-
-        return False
-
-
-    def show_highest_scorer(self):
-
-        player = self.highest_scorer()
-
-        if player:
-
-            print("\nHighest Scorer")
-            print("-" * 30)
-
-            player.display_details()
-
-            return True
-
-        return False
