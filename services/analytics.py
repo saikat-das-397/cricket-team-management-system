@@ -1,82 +1,74 @@
+from models.team import Team
+from models.player import Player
+from models.team_report import TeamReport
+
+
 class Analytics:
     """
-    Analytics Class
+    Provides statistical analysis for a cricket team.
 
-    Responsible for:
-    ----------------
-    1. Team statistics
-    2. Player performance analysis
-    3. Rankings
-    4. Reports (data only)
+    Responsibilities:
+    -----------------
+    - Team statistics
+    - Player rankings
+    - Performance analysis
+    - Generate team report
 
-    It NEVER modifies player data.
+    This class NEVER modifies player data.
     """
 
-    def __init__(self, team):
-        self.team = team
+    def __init__(self, team: Team):
+        self.__team = team
 
-    # -----------------------------------
-    # Total Runs
-    # -----------------------------------
-    def get_total_runs(self):
+    # ==========================================
+    # Private Helper
+    # ==========================================
 
-        players = self.team.get_players()
+    def _players(self) -> list[Player]:
+        """
+        Returns a list of all players.
+        """
+        return list(self.__team)
 
-        if not players:
-            return 0
+    # ==========================================
+    # Basic Statistics
+    # ==========================================
 
-        return sum(player.get_runs() for player in players)
+    def get_total_runs(self) -> int:
+        return sum(player.get_runs() for player in self.__team)
 
-    # -----------------------------------
-    # Total Balls
-    # -----------------------------------
-    def get_total_balls(self):
+    def get_total_balls(self) -> int:
+        return sum(player.get_balls() for player in self.__team)
 
-        players = self.team.get_players()
+    def get_average_runs(self) -> float:
 
-        if not players:
-            return 0
-
-        return sum(player.get_balls() for player in players)
-
-    # -----------------------------------
-    # Average Runs
-    # -----------------------------------
-    def get_average_runs(self):
-
-        players = self.team.get_players()
-
-        if not players:
-            return 0
+        if len(self.__team) == 0:
+            return 0.0
 
         return round(
-            self.get_total_runs() / len(players),
+            self.get_total_runs() / len(self.__team),
             2
         )
 
-    # -----------------------------------
-    # Average Strike Rate
-    # -----------------------------------
-    def get_average_strike_rate(self):
+    def get_average_strike_rate(self) -> float:
 
-        players = self.team.get_players()
-
-        if not players:
-            return 0
+        if len(self.__team) == 0:
+            return 0.0
 
         average = sum(
             player.strike_rate()
-            for player in players
-        ) / len(players)
+            for player in self.__team
+        ) / len(self.__team)
 
         return round(average, 2)
 
-    # -----------------------------------
-    # Highest Scorer
-    # -----------------------------------
-    def get_highest_scorer(self):
+    # ==========================================
+    # Player Rankings
+    # ==========================================
 
-        players = self.team.get_players()
+    def get_highest_scorer(self) -> Player | None:
+
+        players = self._players()
 
         if not players:
             return None
@@ -86,12 +78,9 @@ class Analytics:
             key=lambda player: player.get_runs()
         )
 
-    # -----------------------------------
-    # Lowest Scorer
-    # -----------------------------------
-    def get_lowest_scorer(self):
+    def get_lowest_scorer(self) -> Player | None:
 
-        players = self.team.get_players()
+        players = self._players()
 
         if not players:
             return None
@@ -101,50 +90,56 @@ class Analytics:
             key=lambda player: player.get_runs()
         )
 
-    # -----------------------------------
-    # Top 3 Players
-    # -----------------------------------
-    def get_top_three_players(self):
+    def get_best_strike_rate_player(self) -> Player | None:
 
-        players = self.team.get_players()
+        players = self._players()
 
         if not players:
-            return []
+            return None
+
+        return max(
+            players,
+            key=lambda player: player.strike_rate()
+        )
+
+    def get_top_three_players(self) -> list[Player]:
 
         return sorted(
-            players,
+            self.__team,
             key=lambda player: player.get_runs(),
             reverse=True
         )[:3]
 
-    # -----------------------------------
-    # Team Summary
-    # -----------------------------------
-    def get_team_summary(self):
+    # ==========================================
+    # Team Report
+    # ==========================================
+
+    def generate_report(self) -> TeamReport:
 
         highest = self.get_highest_scorer()
         lowest = self.get_lowest_scorer()
 
-        return {
+        return TeamReport(
 
-            "Players":
-                len(self.team.get_players()),
+            total_players=len(self.__team),
 
-            "Total Runs":
-                self.get_total_runs(),
+            total_runs=self.get_total_runs(),
 
-            "Total Balls":
-                self.get_total_balls(),
+            total_balls=self.get_total_balls(),
 
-            "Average Runs":
-                self.get_average_runs(),
+            average_runs=self.get_average_runs(),
 
-            "Average Strike Rate":
-                self.get_average_strike_rate(),
+            average_strike_rate=self.get_average_strike_rate(),
 
-            "Highest Scorer":
-                highest.get_name() if highest else "N/A",
+            highest_scorer=highest,
 
-            "Lowest Scorer":
-                lowest.get_name() if lowest else "N/A"
-        }
+            lowest_scorer=lowest
+
+        )
+
+    # ==========================================
+    # Display
+    # ==========================================
+
+    def __str__(self) -> str:
+        return f"Analytics({self.__team.get_team_name()})"
