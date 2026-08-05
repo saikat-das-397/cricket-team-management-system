@@ -1,0 +1,11 @@
+DEFAULT_TEAM = "Bangladesh"
+
+DATA_FOLDER = "data"
+
+REPORT_FOLDER = "reports"
+
+CHART_FOLDER = "charts"
+
+WINDOW_WIDTH = 1200
+
+WINDOW_HEIGHT = 700
