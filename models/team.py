@@ -50,26 +50,35 @@ class Team:
 
         return None
 
+    # --------------------------
+# Update Player
+# --------------------------
     def update_player(
         self,
-        name: str,
-        runs: int,
-        balls: int
-    ) -> bool:
-        """
-        Update player's runs and balls.
-        """
+        old_name,
+        new_name,
+        runs,
+        balls
+    ):
 
-        player = self.search_player(name)
+        player = self.search_player(old_name)
 
         if player is None:
             return False
 
+        # Check duplicate name only if name changed
+        if old_name.lower() != new_name.lower():
+
+            if self.search_player(new_name) is not None:
+                return False
+
+        # Update player information
+        player.set_name(new_name)
         player.set_runs(runs)
         player.set_balls(balls)
 
         return True
-
+    
     def delete_player(self, name: str) -> bool:
         """
         Delete player by name.
@@ -127,3 +136,6 @@ class Team:
             f"Team: {self.__team_name} "
             f"({len(self.__players)} players)"
         )
+    
+    def get_team_name(self):
+        return self.__team_name

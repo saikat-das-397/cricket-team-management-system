@@ -10,3 +10,4 @@ class TeamReport:
     average_strike_rate: float
     highest_scorer: Player | None
     lowest_scorer: Player | None
+    best_strike_rate_player: Player | None = None

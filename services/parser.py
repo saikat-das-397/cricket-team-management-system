@@ -1,135 +1,87 @@
 import re
 
+from models.batsman import Batsman
+from models.player import Player
+
+
 class ScorecardParser:
+    """
+    Reads and writes cricket scorecards.
+    """
 
-    def __init__(self):
-        self.pattern = r"([A-Za-z ]+)\s+(\d+)\((\d+)\)"
+    PATTERN = re.compile(
+        r"^([A-Za-z][A-Za-z ]*)\s+(\d+)\((\d+)\)$"
+    )
 
-    def read_file(self, filename, team):
+    # ==========================================
+    # Read File
+    # ==========================================
 
-            try:
+    def read_file(self, filename: str) -> list[Player]:
+        """
+        Read scorecard and return a list of players.
+        """
 
-                with open(filename, "r") as file:
+        players = []
 
-                    # Clear existing players before loading
-                    team.get_players().clear()
+        with open(filename, "r") as file:
 
-                    for line in file:
+            for line_number, line in enumerate(file, start=1):
 
-                        line = line.strip()
+                line = line.strip()
 
-                        # Skip empty lines
-                        if not line:
-                            continue
+                if not line:
+                    continue
 
+                match = self.PATTERN.fullmatch(line)
 
-                        match = re.fullmatch(
-                            self.pattern,
-                            line
-                        )
+                if not match:
+                    print(
+                        f"Warning: Invalid record "
+                        f"on line {line_number}"
+                    )
+                    continue
 
+                player = Batsman(
 
-                        if match:
+                    match.group(1).strip(),
 
-                            name = match.group(1).strip()
-                            runs = int(match.group(2))
-                            balls = int(match.group(3))
+                    int(match.group(2)),
 
+                    int(match.group(3))
 
-                            player = Batsman(
-                                name,
-                                runs,
-                                balls
-                            )
-
-
-                            team.add_player(player)
-
-
-                        else:
-
-                            print(
-                                f"Invalid record skipped: {line}"
-                            )
-
-
-                print("\nScorecard loaded successfully!")
-
-
-            except FileNotFoundError:
-
-                print("\nFile not found!")
-
-
-            except Exception as e:
-
-                print(
-                    f"\nError occurred: {e}"
                 )
 
-    # -----------------------------
-    # Load Scorecard
-    # -----------------------------
-    def load_file(self, filename, team):
+                players.append(player)
 
-        try:
+        return players
 
-            with open(filename, "r") as file:
+    # ==========================================
+    # Save File
+    # ==========================================
 
-                # Clear old data
-                team.get_players().clear()
+    def save_file(
+        self,
+        filename: str,
+        players: list[Player]
+    ) -> None:
+        """
+        Save players to scorecard file.
+        """
 
-                for line in file:
+        with open(filename, "w") as file:
 
-                    line = line.strip()
+            for player in players:
 
-                    if not line:
-                        continue
+                file.write(
 
-                    match = re.fullmatch(self.pattern, line)
+                    f"{player.get_name()} "
 
-                    if match:
+                    f"{player.get_runs()}"
 
-                        name = match.group(1).strip()
-                        runs = int(match.group(2))
-                        balls = int(match.group(3))
+                    f"({player.get_balls()})\n"
 
-                        player = Batsman(name, runs, balls)
+                )
 
-                        team.add_player(player)
-
-                    else:
-
-                        print(f"Invalid record skipped: {line}")
-
-            print("\nScorecard loaded successfully!")
-
-        except FileNotFoundError:
-
-            print("\nFile not found!")
-
-        except Exception as e:
-
-            print(f"\nError: {e}")
-
-    # -----------------------------
-    # Save Scorecard
-    # -----------------------------
-    def save_file(self, filename, team):
-
-        try:
-
-            with open(filename, "w") as file:
-
-                for player in team.get_players():
-
-                    file.write(
-                        f"{player.get_name()} "
-                        f"{player.get_runs()}({player.get_balls()})\n"
-                    )
-
-            print("\nScorecard saved successfully!")
-
-        except Exception as e:
-
-            print(f"\nError: {e}")
+class InvalidScorecardError(Exception):
+    """Raised when a scorecard contains invalid records."""

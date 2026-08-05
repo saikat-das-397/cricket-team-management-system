@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from reportlab.lib import colors
+from reportlab.lib import styles
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -15,22 +16,37 @@ from reportlab.platypus import (
 
 class ReportService:
 
+    REPORT_FOLDER = "reports"
+
     def __init__(self, team, analytics):
 
-        self.team = team
-        self.analytics = analytics
+        self.__team = team
+        self.__analytics = analytics
 
-        os.makedirs("reports", exist_ok=True)
+        os.makedirs(
+            self.REPORT_FOLDER,
+            exist_ok=True
+        )
 
     # -------------------------------------
     # Generate PDF Report
     # -------------------------------------
-    def generate_pdf(self):
+    def generate_pdf(self, filename=None):
 
-        filename = (
-            f"reports/Team_Report_"
-            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        )
+        if len(self.__team) == 0:
+            raise ValueError(
+                "No player data available."
+            )
+
+        if filename is None:
+
+            filename = os.path.join(
+
+                self.REPORT_FOLDER,
+
+                f"Team_Report_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+
+            )
 
         pdf = SimpleDocTemplate(filename)
 
@@ -73,7 +89,7 @@ class ReportService:
             ]
         ]
 
-        for player in self.team.get_players():
+        for player in self.__team:
 
             data.append([
                 player.get_name(),
@@ -114,48 +130,44 @@ class ReportService:
         # Statistics
         # -------------------------
 
-        report = self.analytics.generate_report()
+        report = self.__analytics.generate_report()
 
-        elements.append(
-            Paragraph("<b>Team Statistics</b>", styles["Heading2"])
+
+        highest = (
+            report.highest_scorer.get_name()
+            if report.highest_scorer
+            else "N/A"
         )
 
         elements.append(
             Paragraph(
-                f"Total Players : {report.total_players}",
-                styles["Normal"]
+                "<b>Team Statistics</b>",
+                styles["Heading2"]
             )
         )
 
-        elements.append(
-            Paragraph(
-                f"Total Runs : {report.total_runs}",
-                styles["Normal"]
-            )
-        )
+        statistics = [
 
-        elements.append(
-            Paragraph(
-                f"Average Runs : {report.average_runs}",
-                styles["Normal"]
-            )
-        )
+            f"Total Players : {report.total_players}",
 
-        elements.append(
-            Paragraph(
-                f"Average Strike Rate : "
-                f"{report.average_strike_rate}",
-                styles["Normal"]
-            )
-        )
+            f"Total Runs : {report.total_runs}",
 
-        elements.append(
-            Paragraph(
-                f"Highest Scorer : "
-                f"{report.highest_scorer.get_name()}",
-                styles["Normal"]
+            f"Average Runs : {report.average_runs}",
+
+            f"Average Strike Rate : {report.average_strike_rate}",
+
+            f"Highest Scorer : {highest}"
+
+        ]
+
+        for item in statistics:
+
+            elements.append(
+                Paragraph(
+                    item,
+                    styles["Normal"]
+                )
             )
-        )
 
         elements.append(
             Spacer(1,20)
@@ -185,8 +197,10 @@ class ReportService:
 
                 elements.append(
                     Spacer(1,20)
-                )
+                )     
 
         pdf.build(elements)
 
-        print(f"\nPDF created successfully!\n{filename}")
+        return filename
+
+       

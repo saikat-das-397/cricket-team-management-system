@@ -1,11 +1,16 @@
-from app.application import Application
+# from app.application import Application
+from gui.main_window import MainWindow
 
 def main():
 
-    app = Application()
+    window = MainWindow()
 
-    app.load()
+    window.run()
 
-    print("Application Started Successfully")
+    # app = Application()
+
+    # app.load()
+
+    # print("Application Started Successfully")
 
 main()

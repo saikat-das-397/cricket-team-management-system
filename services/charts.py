@@ -1,36 +1,62 @@
 import os
 import matplotlib.pyplot as plt
 
+from models.team import Team
+
 
 class ChartService:
     """
-    Creates charts from Team data.
+    Generates charts for the cricket team.
     """
 
-    def __init__(self, team):
+    OUTPUT_FOLDER = "charts"
 
-        self.team = team
+    def __init__(self, team: Team):
 
-        # Automatically create charts folder
-        os.makedirs("charts", exist_ok=True)
+        self.__team = team
 
-    # ---------------------------------
-    # Runs Bar Chart
-    # ---------------------------------
+        os.makedirs(
+            self.OUTPUT_FOLDER,
+            exist_ok=True
+        )
+
+    # ==========================================
+    # Helpers
+    # ==========================================
+
+    def _players(self):
+
+        return list(self.__team)
+
+    def _names(self):
+
+        return [
+            player.get_name()
+            for player in self.__team
+        ]
+
+    def _runs(self):
+
+        return [
+            player.get_runs()
+            for player in self.__team
+        ]
+
+    # ==========================================
+    # Runs Chart
+    # ==========================================
+
     def create_runs_chart(self):
 
-        players = self.team.get_players()
-
-        if not players:
-            print("No data available.")
-            return
-
-        names = [player.get_name() for player in players]
-        runs = [player.get_runs() for player in players]
+        if len(self.__team) == 0:
+            return None
 
         plt.figure(figsize=(10, 5))
 
-        plt.bar(names, runs)
+        plt.bar(
+            self._names(),
+            self._runs()
+        )
 
         plt.title("Runs Scored")
 
@@ -42,35 +68,42 @@ class ChartService:
 
         plt.tight_layout()
 
-        plt.savefig("charts/runs_chart.png")
+        filename = os.path.join(
+            self.OUTPUT_FOLDER,
+            "runs_chart.png"
+        )
+
+        plt.savefig(filename)
 
         plt.close()
 
-        print("Runs chart created.")
+        return filename
 
-    # ---------------------------------
+    # ==========================================
     # Strike Rate Chart
-    # ---------------------------------
+    # ==========================================
+
     def create_strike_rate_chart(self):
 
-        players = self.team.get_players()
-
-        if not players:
-            print("No data available.")
-            return
-
-        names = [player.get_name() for player in players]
+        if len(self.__team) == 0:
+            return None
 
         strike_rates = [
+
             player.strike_rate()
-            for player in players
+
+            for player in self.__team
+
         ]
 
         plt.figure(figsize=(10, 5))
 
-        plt.bar(names, strike_rates)
+        plt.bar(
+            self._names(),
+            strike_rates
+        )
 
-        plt.title("Strike Rate Comparison")
+        plt.title("Strike Rate")
 
         plt.xlabel("Players")
 
@@ -80,55 +113,136 @@ class ChartService:
 
         plt.tight_layout()
 
-        plt.savefig("charts/strike_rate_chart.png")
+        filename = os.path.join(
+
+            self.OUTPUT_FOLDER,
+
+            "strike_rate_chart.png"
+
+        )
+
+        plt.savefig(filename)
 
         plt.close()
 
-        print("Strike rate chart created.")
+        return filename
 
-    # ---------------------------------
-    # Team Contribution Pie Chart
-    # ---------------------------------
-    def create_team_contribution_chart(self):
+    # ==========================================
+    # Pie Chart
+    # ==========================================
 
-        players = self.team.get_players()
+    def create_contribution_chart(self):
 
-        if not players:
-            print("No data available.")
-            return
-
-        names = [player.get_name() for player in players]
-
-        runs = [player.get_runs() for player in players]
+        if len(self.__team) == 0:
+            return None
 
         plt.figure(figsize=(7, 7))
 
         plt.pie(
-            runs,
-            labels=names,
+
+            self._runs(),
+
+            labels=self._names(),
+
             autopct="%1.1f%%",
+
             startangle=90
+
         )
 
-        plt.title("Team Run Contribution")
+        plt.title(
+            "Team Run Contribution"
+        )
 
-        plt.tight_layout()
+        filename = os.path.join(
 
-        plt.savefig("charts/team_contribution.png")
+            self.OUTPUT_FOLDER,
+
+            "team_contribution.png"
+
+        )
+
+        plt.savefig(filename)
 
         plt.close()
 
-        print("Contribution chart created.")
+        return filename
 
-    # ---------------------------------
-    # Generate All Charts
-    # ---------------------------------
+    # ==========================================
+    # Horizontal Ranking
+    # ==========================================
+
+    def create_ranking_chart(self):
+
+        if len(self.__team) == 0:
+            return None
+
+        players = sorted(
+
+            self.__team,
+
+            key=lambda p: p.get_runs(),
+
+            reverse=True
+
+        )
+
+        names = [
+            p.get_name()
+            for p in players
+        ]
+
+        runs = [
+            p.get_runs()
+            for p in players
+        ]
+
+        plt.figure(figsize=(8, 5))
+
+        plt.barh(names, runs)
+
+        plt.title(
+            "Player Ranking"
+        )
+
+        plt.tight_layout()
+
+        filename = os.path.join(
+
+            self.OUTPUT_FOLDER,
+
+            "ranking.png"
+
+        )
+
+        plt.savefig(filename)
+
+        plt.close()
+
+        return filename
+
+    # ==========================================
+    # Generate All
+    # ==========================================
+
     def generate_all_charts(self):
 
-        self.create_runs_chart()
+        return {
 
-        self.create_strike_rate_chart()
+            "Runs":
 
-        self.create_team_contribution_chart()
+                self.create_runs_chart(),
 
-        print("\nAll charts generated successfully!")
+            "Strike Rate":
+
+                self.create_strike_rate_chart(),
+
+            "Contribution":
+
+                self.create_contribution_chart(),
+
+            "Ranking":
+
+                self.create_ranking_chart()
+
+        }

@@ -1,96 +1,187 @@
+from models.batsman import Batsman
 from models.team import Team
 
 from services.parser import ScorecardParser
 from services.analytics import Analytics
 from services.charts import ChartService
 from services.report import ReportService
+from services.validator import Validator
 
 
 class Application:
     """
-    Main Application Controller.
+    Main application controller.
 
-    This class connects all parts of the system.
+    Coordinates all services.
 
-    GUI never talks directly to Team,
-    Parser, Analytics, Charts or Report.
-
-    GUI only talks to Application.
+    The GUI communicates ONLY with this class.
     """
 
-    def __init__(self, team_name="My Team"):
+    DEFAULT_FILE = "data/scorecard.txt"
+
+    def __init__(self, team_name: str = "My Team"):
 
         # -------------------------
         # Core Model
         # -------------------------
 
-        self.team = Team(team_name)
+        self.__team = Team(team_name)
 
         # -------------------------
         # Services
         # -------------------------
 
-        self.parser = ScorecardParser()
+        self.__parser = ScorecardParser()
 
-        self.analytics = Analytics(self.team)
+        self.__analytics = Analytics(self.__team)
 
-        self.charts = ChartService(self.team)
+        self.__charts = ChartService(self.__team)
 
-        self.report = ReportService(
-            self.team,
-            self.analytics
+        self.__report = ReportService(
+            self.__team,
+            self.__analytics
         )
 
-    # --------------------------------
-    # Load Data
-    # --------------------------------
+    # =====================================================
+    # File Operations
+    # =====================================================
 
-    def load(self, filename="data/scorecard.txt"):
+    def load(
+        self,
+        filename: str = DEFAULT_FILE
+    ) -> bool:
 
-        self.parser.read_file(
-            filename,
-            self.team
+        try:
+
+            players = self.__parser.read_file(filename)
+
+            self.__team.clear()
+
+            for player in players:
+                self.__team.add_player(player)
+
+            return True
+
+        except FileNotFoundError:
+            return False
+
+    def save(
+        self,
+        filename: str = DEFAULT_FILE
+    ) -> bool:
+
+        try:
+
+            self.__parser.save_file(
+                filename,
+                self.__team.get_players()
+            )
+
+            return True
+
+        except FileNotFoundError:
+            return False
+
+    # =====================================================
+    # Player Operations
+    # =====================================================
+
+    def add_player(self, name, runs, balls):
+
+        valid, message = Validator.validate_player(
+            name,
+            runs,
+            balls
         )
 
-    # --------------------------------
-    # Save Data
-    # --------------------------------
+        if not valid:
+            return False, message
 
-    def save(self, filename="data/scorecard.txt"):
 
-        self.parser.write_file(
-            filename,
-            self.team
+        player = Batsman(name, runs, balls)
+
+        return self.__team.add_player(player)
+    
+    def update_player(
+        self,
+        old_name,
+        new_name,
+        runs,
+        balls
+    ):
+
+        valid, message = Validator.validate_player(
+            new_name,
+            runs,
+            balls
         )
 
-    # --------------------------------
-    # Get Team
-    # --------------------------------
+        if not valid:
+            return False, message
+
+        success = self.__team.update_player(
+            old_name,
+            new_name,
+            runs,
+            balls
+        )
+
+        if not success:
+            return False, "Player already exists."
+
+        return True, "Player updated successfully."
+
+    def delete_player(self, name):
+
+        if self.__team.delete_player(name):
+            return True, "Player deleted successfully."
+
+        return False, "Player not found."
+
+    def search_player(self, name):
+
+        return self.__team.search_player(name)
+
+    # =====================================================
+    # Getters
+    # =====================================================
+
+    def get_players(self):
+
+        return self.__team.get_players()
 
     def get_team(self):
 
-        return self.team
+        return self.__team
 
-    # --------------------------------
-    # Get Analytics
-    # --------------------------------
+    def get_report(self):
 
-    def get_analytics(self):
+        return self.__analytics.generate_report()
 
-        return self.analytics
+    def get_top_players(self):
 
-    # --------------------------------
-    # Generate Charts
-    # --------------------------------
+        return self.__analytics.get_top_three_players()
+
+    # =====================================================
+    # Charts
+    # =====================================================
 
     def generate_charts(self):
 
-        self.charts.generate_all_charts()
+        self.__charts.generate_all_charts()
 
-    # --------------------------------
-    # Generate PDF
-    # --------------------------------
+    # =====================================================
+    # PDF
+    # =====================================================
 
     def generate_pdf(self):
 
-        self.report.generate_pdf()
+        self.__report.generate_pdf()
+
+    # =====================================================
+    # Analytics
+    # =====================================================
+
+    def analytics(self):
+
+        return self.__analytics
