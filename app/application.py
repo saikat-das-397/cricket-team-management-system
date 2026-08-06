@@ -182,6 +182,6 @@ class Application:
     # Analytics
     # =====================================================
 
-    def analytics(self):
+    def get_analytics(self):
 
         return self.__analytics
