@@ -4,7 +4,8 @@ from tkinter import ttk
 from app.application import Application
 from tkinter import filedialog, messagebox
 from gui.player_dialog import PlayerDialog
-
+from gui.statistics_window import StatisticsWindow
+from gui.charts_window import ChartsWindow
 
 class MainWindow:
 
@@ -93,6 +94,34 @@ class MainWindow:
             "strike_rate"
         )
 
+        # ===========================
+        # Search Frame
+        # ===========================
+
+        self.search_frame = ttk.Frame(self.root, padding=10)
+        self.search_frame.pack(fill="x")
+
+        ttk.Label(
+            self.search_frame,
+            text="🔍 Search Player:"
+        ).pack(side="left")
+
+        self.search_var = tk.StringVar()
+
+        search_entry = ttk.Entry(
+            self.search_frame,
+            textvariable=self.search_var,
+            width=30
+        )
+
+        search_entry.pack(side="left", padx=10)
+
+        # Whenever text changes
+        self.search_var.trace_add(
+            "write",
+            self.search_players
+        )
+
         self.table = ttk.Treeview(
 
             self.content_frame,
@@ -139,22 +168,26 @@ class MainWindow:
 
         self.table.heading(
             "name",
-            text="Player Name"
+            text="Player Name",
+            command=lambda: self.sort_table("name", False)
         )
 
         self.table.heading(
             "runs",
-            text="Runs"
+            text="Runs",
+            command=lambda: self.sort_table("runs", False)
         )
 
         self.table.heading(
             "balls",
-            text="Balls"
+            text="Balls",
+            command=lambda: self.sort_table("balls", False)
         )
 
         self.table.heading(
             "strike_rate",
-            text="Strike Rate"
+            text="Strike Rate",
+            command=lambda: self.sort_table("strike_rate", False)
         )
 
         self.table.column(
@@ -249,7 +282,7 @@ class MainWindow:
 
         player_menu.add_command(label="Delete Player", command=self.delete_player)
 
-        player_menu.add_command(label="Search Player", command=self.search_player)
+        player_menu.add_command(label="Search Player", command=self.search_players)
 
         menu_bar.add_cascade(
             label="Players",
@@ -266,7 +299,8 @@ class MainWindow:
         )
 
         analytics_menu.add_command(
-            label="Team Statistics"
+            label="Team Statistics",
+            command=self.show_statistics
         )
 
         analytics_menu.add_command(
@@ -274,7 +308,8 @@ class MainWindow:
         )
 
         analytics_menu.add_command(
-            label="Generate Charts"
+            label="Generate Charts",
+            command=self.show_charts
         )
 
         menu_bar.add_cascade(
@@ -331,27 +366,7 @@ class MainWindow:
         # Insert latest data
         players = self.app.get_players()
 
-        for player in players:
-
-            self.table.insert(
-
-                "",
-
-                "end",
-
-                values=(
-
-                    player.get_name(),
-
-                    player.get_runs(),
-
-                    player.get_balls(),
-
-                    f"{player.strike_rate():.2f}"
-
-                )
-
-            )
+        self.populate_table(players)
 
         # Update player count
         self.player_count.config(
@@ -629,8 +644,92 @@ class MainWindow:
                 message
             )
 
-    def search_player(self):
-        pass
+    def search_players(self, *args):
+
+        keyword = self.search_var.get().strip().lower()
+
+        # Clear current table
+        players = [
+            player
+            for player in self.app.get_players()
+            if keyword in player.get_name().lower()
+        ]
+
+        self.populate_table(players)
+
+
+    def populate_table(self, players):
+
+        self.table.delete(*self.table.get_children())
+
+        for player in players:
+            self.table.insert(
+                "",
+                "end",
+                values=(
+                    player.get_name(),
+                    player.get_runs(),
+                    player.get_balls(),
+                    f"{player.strike_rate():.2f}"
+                )
+            )
+
+    def show_statistics(self):
+
+        StatisticsWindow(
+            self.root,
+            self.app
+        )
+
+
+    def show_charts(self):
+
+        ChartsWindow(
+            self.root,
+            self.app
+        )
+
+    def sort_table(self, column, reverse):
+
+        # Get all rows
+        data = [
+            (self.table.set(item, column), item)
+            for item in self.table.get_children("")
+        ]
+
+        # Numeric columns
+        if column in ("runs", "balls", "strike_rate"):
+
+            data.sort(
+                key=lambda x: float(x[0]),
+                reverse=reverse
+            )
+
+        else:
+
+            data.sort(
+                key=lambda x: x[0].lower(),
+                reverse=reverse
+            )
+
+        # Rearrange rows
+        for index, (_, item) in enumerate(data):
+
+            self.table.move(
+                item,
+                "",
+                index
+            )
+
+        # Next click reverses order
+        self.table.heading(
+            column,
+            command=lambda: self.sort_table(
+                column,
+                not reverse
+            )
+        )
+
     # -----------------------------
     # Run
     # -----------------------------
