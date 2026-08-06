@@ -24,6 +24,7 @@ class MainWindow:
 
         # THIS MUST EXIST
         self.create_widgets()
+        self.bind_shortcuts()
     # -----------------------------
     # Create Widgets
     # -----------------------------
@@ -132,6 +133,28 @@ class MainWindow:
 
         )
 
+        self.context_menu = tk.Menu(
+            self.root,
+            tearoff=0
+        )
+
+        self.context_menu.add_command(
+            label="✏ Update Player",
+            command=self.update_player
+        )
+
+        self.context_menu.add_command(
+            label="❌ Delete Player",
+            command=self.delete_player
+        )
+
+        self.context_menu.add_separator()
+
+        self.context_menu.add_command(
+            label="👁 View Details",
+            command=self.view_player
+        )
+
         scrollbar = ttk.Scrollbar(
 
             self.content_frame,
@@ -164,6 +187,16 @@ class MainWindow:
 
             side="left"
 
+        )
+
+        self.table.bind(
+            "<Double-1>",
+            self.on_double_click
+        )
+
+        self.table.bind(
+            "<Button-3>",
+            self.show_context_menu
         )
 
         self.table.heading(
@@ -246,12 +279,12 @@ class MainWindow:
         )
 
         file_menu.add_command(
-            label="Load Scorecard",
+            label="Load Scorecard \tCtrl+O",
             command=self.load_scorecard
         )
 
         file_menu.add_command(
-            label="Save Scorecard",
+            label="Save Scorecard \tCtrl+S",
             command=self.save_scorecard
         )
 
@@ -276,13 +309,13 @@ class MainWindow:
             tearoff=0
         )
 
-        player_menu.add_command(label="Add Player", command=self.add_player)
+        player_menu.add_command(label="Add Player \tCtrl+N", command=self.add_player)
 
-        player_menu.add_command(label="Update Player", command=self.update_player)
+        player_menu.add_command(label="Update Player \tCtrl+U", command=self.update_player)
 
-        player_menu.add_command(label="Delete Player", command=self.delete_player)
+        player_menu.add_command(label="Delete Player \tCtrl+D", command=self.delete_player)
 
-        player_menu.add_command(label="Search Player", command=self.search_players)
+        player_menu.add_command(label="Search Player \tCtrl+F", command=self.search_players)
 
         menu_bar.add_cascade(
             label="Players",
@@ -730,6 +763,91 @@ class MainWindow:
             )
         )
 
+    def on_double_click(self, event):
+
+        item = self.table.identify_row(event.y)
+
+        if not item:
+            return
+
+        self.table.selection_set(item)
+
+        self.update_player()
+
+
+    def show_context_menu(self, event):
+
+        item = self.table.identify_row(event.y)
+
+        if not item:
+            return
+
+        self.table.selection_set(item)
+
+        self.context_menu.post(
+            event.x_root,
+            event.y_root
+        )
+
+
+    def view_player(self):
+
+        selected = self.table.selection()
+
+        if not selected:
+            return
+
+        values = self.table.item(
+            selected[0],
+            "values"
+        )
+
+        messagebox.showinfo(
+
+            "Player Details",
+
+            f"Name : {values[0]}\n"
+            f"Runs : {values[1]}\n"
+            f"Balls : {values[2]}\n"
+            f"Strike Rate : {values[3]}"
+        )
+
+    # -----------------------------
+    # Keyboard Shortcuts
+    # -----------------------------
+    def bind_shortcuts(self):
+
+        self.root.bind(
+            "<Control-n>",
+            lambda event: self.add_player()
+        )
+
+        self.root.bind(
+            "<Control-o>",
+            lambda event: self.load_scorecard()
+        )
+
+        self.root.bind(
+            "<Control-s>",
+            lambda event: self.save_scorecard()
+        )
+
+        self.root.bind(
+            "<Control-p>",
+            lambda event: self.generate_pdf()
+        )
+
+        self.root.bind(
+            "<Control-u>",
+            lambda event: self.update_player()
+        )
+
+        self.root.bind(
+            "<Control-d>",
+            lambda event: self.delete_player()
+        )
+
+        
     # -----------------------------
     # Run
     # -----------------------------
