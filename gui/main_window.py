@@ -21,7 +21,7 @@ class MainWindow:
 
         self.style = ttk.Style()
         self.style.theme_use("aqua")
-
+        self.create_toolbar()
         # THIS MUST EXIST
         self.create_widgets()
         self.bind_shortcuts()
@@ -360,7 +360,8 @@ class MainWindow:
         )
 
         report_menu.add_command(
-            label="Generate PDF"
+            label="Generate PDF",
+            command=self.generate_pdf
         )
 
         menu_bar.add_cascade(
@@ -847,11 +848,170 @@ class MainWindow:
             lambda event: self.delete_player()
         )
 
-        
+
+    def generate_pdf(self):
+
+        filename = filedialog.asksaveasfilename(
+            title="Save PDF Report",
+            defaultextension=".pdf",
+            filetypes=[
+                ("PDF Files", "*.pdf")
+            ]
+        )
+
+        if not filename:
+            return
+
+        try:
+
+            generated_file = self.app.generate_pdf(filename)
+
+            self.status.config(
+                text="PDF report generated successfully."
+            )
+
+            messagebox.showinfo(
+                "Success",
+                f"PDF report generated successfully!\n\n"
+                f"Saved to:\n{generated_file}"
+            )
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                str(e)
+            )
     # -----------------------------
     # Run
     # -----------------------------
 
+    def create_toolbar(self):
+
+        self.toolbar = ttk.Frame(
+            self.root,
+            padding=5
+        )
+
+        self.toolbar.pack(
+            fill="x",
+            side="top"
+        )
+
+        # -------------------------
+        # Load
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="📂 Load",
+            command=self.load_scorecard
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # Save
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="💾 Save",
+            command=self.save_scorecard
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # Add
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="➕ Add",
+            command=self.add_player
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # Update
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="✏ Update",
+            command=self.update_player
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # Delete
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="❌ Delete",
+            command=self.delete_player
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # Separator
+        ttk.Separator(
+            self.toolbar,
+            orient="vertical"
+        ).pack(
+            side="left",
+            fill="y",
+            padx=8
+        )
+
+        # -------------------------
+        # Statistics
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="📊 Statistics",
+            command=self.show_statistics
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # Charts
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="📈 Charts",
+            command=self.show_charts
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        # -------------------------
+        # PDF
+        # -------------------------
+
+        ttk.Button(
+            self.toolbar,
+            text="📄 PDF",
+            command=self.generate_pdf
+        ).pack(
+            side="left",
+            padx=3
+        )
+        
     def run(self):
 
         self.root.mainloop()

@@ -174,9 +174,9 @@ class Application:
     # PDF
     # =====================================================
 
-    def generate_pdf(self):
+    def generate_pdf(self, filename=None):
 
-        self.__report.generate_pdf()
+        self.__report.generate_pdf(filename)
 
     # =====================================================
     # Analytics
