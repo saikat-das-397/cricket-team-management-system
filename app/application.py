@@ -256,7 +256,7 @@ class Application:
 
     def generate_pdf(self, filename=None):
 
-        self.__report.generate_pdf(filename)
+        return self.__report.generate_pdf(filename)
 
     # =====================================================
     # Analytics
