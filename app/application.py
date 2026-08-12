@@ -6,7 +6,9 @@ from services.analytics import Analytics
 from services.charts import ChartService
 from services.report import ReportService
 from services.validator import Validator
-
+from services.command_manager import CommandManager
+from commands.add_player_command import AddPlayerCommand
+from commands.update_player_command import UpdatePlayerCommand
 
 class Application:
     """
@@ -30,7 +32,7 @@ class Application:
         # -------------------------
         # Services
         # -------------------------
-
+        
         self.__parser = ScorecardParser()
 
         self.__analytics = Analytics(self.__team)
@@ -41,6 +43,9 @@ class Application:
             self.__team,
             self.__analytics
         )
+
+        self.command_manager = CommandManager()
+        
 
     # =====================================================
     # File Operations
@@ -88,6 +93,7 @@ class Application:
 
     def add_player(self, name, runs, balls):
 
+
         valid, message = Validator.validate_player(
             name,
             runs,
@@ -97,11 +103,32 @@ class Application:
         if not valid:
             return False, message
 
+        if self.__team.search_player(name) is not None:
+            return False, "Player already exists."
 
-        player = Batsman(name, runs, balls)
 
-        return self.__team.add_player(player)
-    
+        player = Batsman(
+            name,
+            runs,
+            balls
+        )
+
+        command = AddPlayerCommand(
+            self.__team,
+            player
+        )
+
+        try:
+
+            self.command_manager.execute(command)
+
+            return True, "Player added successfully."
+
+        except Exception as e:
+
+            return False, str(e)
+        
+     
     def update_player(
         self,
         old_name,
@@ -109,6 +136,10 @@ class Application:
         runs,
         balls
     ):
+
+        # ---------------------------------
+        # Validate new data
+        # ---------------------------------
 
         valid, message = Validator.validate_player(
             new_name,
@@ -119,18 +150,67 @@ class Application:
         if not valid:
             return False, message
 
-        success = self.__team.update_player(
+        # ---------------------------------
+        # Find existing player
+        # ---------------------------------
+
+        player = self.__team.search_player(
+            old_name
+        )
+
+        if player is None:
+            return False, "Player not found."
+
+        # ---------------------------------
+        # Store old state
+        # ---------------------------------
+
+        old_runs = player.get_runs()
+        old_balls = player.get_balls()
+
+        # ---------------------------------
+        # Check duplicate name
+        # ---------------------------------
+
+        if (
+            old_name.lower() != new_name.lower()
+            and self.__team.search_player(new_name)
+            is not None
+        ):
+
+            return False, "Player already exists."
+
+        # ---------------------------------
+        # Create command
+        # ---------------------------------
+
+        command = UpdatePlayerCommand(
+            player,
             old_name,
+            old_runs,
+            old_balls,
             new_name,
             runs,
             balls
         )
 
-        if not success:
-            return False, "Player already exists."
+        # ---------------------------------
+        # Execute command
+        # ---------------------------------
 
-        return True, "Player updated successfully."
+        try:
 
+            self.command_manager.execute(
+                command
+            )
+
+            return True, "Player updated successfully."
+
+        except Exception as e:
+
+            return False, str(e)
+            
+        
     def delete_player(self, name):
 
         if self.__team.delete_player(name):
@@ -168,7 +248,7 @@ class Application:
 
     def generate_charts(self):
 
-        self.__charts.generate_all_charts()
+        return self.__charts.generate_all_charts()
 
     # =====================================================
     # PDF
@@ -185,3 +265,33 @@ class Application:
     def get_analytics(self):
 
         return self.__analytics
+
+
+    # --------------------------------
+    # Add Player
+    # --------------------------------
+
+    # def add_player(self, player):
+
+    #     command = AddPlayerCommand(
+    #         self.team,
+    #         player
+    #     )
+
+    #     self.command_manager.execute(command)
+
+    # --------------------------------
+    # Undo
+    # --------------------------------
+
+    def undo(self):
+
+        return self.command_manager.undo()
+
+    # --------------------------------
+    # Redo
+    # --------------------------------
+
+    def redo(self):
+
+        return self.command_manager.redo()

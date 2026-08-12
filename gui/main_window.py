@@ -550,10 +550,10 @@ class MainWindow:
             text=f"{name} added successfully."
         )
 
-        messagebox.showinfo(
-            "Success",
-            "Player added successfully!"
-        )
+        # messagebox.showinfo(
+        #     "Success",
+        #     "Player added successfully!"
+        # )
 
 
     def update_player(self):
@@ -848,6 +848,16 @@ class MainWindow:
             lambda event: self.delete_player()
         )
 
+        self.root.bind(
+            "<Control-z>",
+            lambda event: self.undo()
+        )
+
+        self.root.bind(
+            "<Control-y>",
+            lambda event: self.redo()
+        )
+
 
     def generate_pdf(self):
 
@@ -1011,6 +1021,62 @@ class MainWindow:
             side="left",
             padx=3
         )
+
+        ttk.Button(
+            self.toolbar,
+            text="↶ Undo",
+            command=self.undo
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+        ttk.Button(
+            self.toolbar,
+            text="↷ Redo",
+            command=self.redo
+        ).pack(
+            side="left",
+            padx=3
+        )
+
+
+    def undo(self):
+
+        if self.app.undo():
+
+            self.populate_table(
+                self.app.get_players()
+            )
+
+            self.status.config(
+                text="Last action undone."
+            )
+
+        else:
+
+            self.status.config(
+                text="Nothing to undo."
+            )
+
+    def redo(self):
+
+        if self.app.redo():
+
+            self.populate_table(
+                self.app.get_players()
+            )
+
+            self.status.config(
+                text="Last action redone."
+            )
+
+        else:
+
+            self.status.config(
+                text="Nothing to redo."
+            )      
+
         
     def run(self):
 
