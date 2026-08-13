@@ -12,5 +12,3 @@ python-dateutil==2.9.0.post0
 reportlab==5.0.0
 six==1.17.0
 streamlit>=1.40,<2.0
-matplotlib>=3.8,<4.0
-reportlab>=4.0,<5.0
