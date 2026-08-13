@@ -542,3 +542,54 @@ if st.sidebar.button(
             "Unable to save scorecard."
         )
 
+# ==========================================
+# PDF Report
+# ==========================================
+
+st.header("📄 Team Report")
+
+if st.button(
+    "📄 Generate PDF Report",
+    key="generate_pdf"
+):
+
+    try:
+
+        # Generate latest charts
+        app.generate_charts()
+
+        # Generate PDF
+        pdf_filename = app.generate_pdf()
+
+        st.session_state.pdf_filename = pdf_filename
+
+        st.success(
+            "PDF report generated successfully."
+        )
+
+    except Exception as e:
+
+        st.error(
+            str(e)
+        )
+        
+# ==========================================
+# Download PDF
+# ==========================================
+
+if "pdf_filename" in st.session_state:
+
+    pdf_filename = st.session_state.pdf_filename
+
+    with open(
+        pdf_filename,
+        "rb"
+    ) as pdf_file:
+
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=pdf_file,
+            file_name="Cricket_Team_Report.pdf",
+            mime="application/pdf",
+            key="download_pdf"
+        )
