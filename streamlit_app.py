@@ -2,6 +2,8 @@ import streamlit as st
 
 from app.application import Application
 from services.analytics import Analytics
+from auth.authentication import AuthenticationService
+from auth.authorization import AuthorizationService
 
 
 # ==========================================
@@ -14,6 +16,92 @@ st.set_page_config(
     layout="wide"
 )
 
+# ==========================================
+# Authentication
+# ==========================================
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if "username" not in st.session_state:
+    st.session_state.username = None
+
+if "role" not in st.session_state:
+    st.session_state.role = None
+
+# ==========================================
+# Login
+# ==========================================
+
+if not st.session_state.authenticated:
+
+    left, center, right = st.columns(
+        [1, 2, 1]
+    )
+
+    with center:
+
+        st.title("🔐 Login")
+
+        username = st.text_input(
+            "Username"
+        )
+
+        password = st.text_input(
+            "Password",
+            type="password"
+        )
+
+        if st.button(
+            "Login",
+            use_container_width=True
+        ):
+
+            username_valid, username_message = (
+                AuthenticationService
+                .validate_username(username)
+            )
+
+            if not username_valid:
+
+                st.error(username_message)
+
+            else:
+
+                password_valid, password_message = (
+                    AuthenticationService
+                    .validate_password(password)
+                )
+
+                if not password_valid:
+
+                    st.error(password_message)
+
+                else:
+
+                    success, role = (
+                        AuthenticationService
+                        .authenticate(
+                            username,
+                            password
+                        )
+                    )
+
+                    if success:
+
+                        st.session_state.authenticated = True
+                        st.session_state.username = username
+                        st.session_state.role = role
+
+                        st.rerun()
+
+                    else:
+
+                        st.error(
+                            "Invalid username or password."
+                        )
+
+    st.stop()
 
 # ==========================================
 # Application
@@ -40,6 +128,28 @@ app = st.session_state.app
 analytics = Analytics(
     app.get_team()
 )
+
+
+st.sidebar.write(
+    f"👤 User: "
+    f"**{st.session_state.username}**"
+)
+
+st.sidebar.write(
+    f"🔑 Role: "
+    f"**{st.session_state.role.title()}**"
+)
+
+if st.sidebar.button("Logout"):
+
+    st.session_state.authenticated = False
+    st.session_state.username = None
+    st.session_state.role = None
+
+    if "app" in st.session_state:
+        del st.session_state.app
+
+    st.rerun()
 
 # ==========================================
 # Header
@@ -126,169 +236,175 @@ with col3:
 # Add Player
 # ==========================================
 
-st.sidebar.header("➕ Add Player")
+if AuthorizationService.can_modify(st.session_state.role):
+    st.sidebar.header("➕ Add Player")
 
-with st.sidebar.form("add_player_form"):
+    with st.sidebar.form("add_player_form"):
 
-    name = st.text_input(
-        "Player Name"
-    )
-
-    runs = st.number_input(
-        "Runs",
-        min_value=0,
-        step=1
-    )
-
-    balls = st.number_input(
-        "Balls",
-        min_value=0,
-        step=1
-    )
-
-    submitted = st.form_submit_button(
-        "Add Player"
-    )
-
-    if submitted:
-
-        success, message = app.add_player(
-            name,
-            runs,
-            balls
+        name = st.text_input(
+            "Player Name"
         )
 
-        if success:
+        runs = st.number_input(
+            "Runs",
+            min_value=0,
+            step=1
+        )
 
-            st.success(message)
+        balls = st.number_input(
+            "Balls",
+            min_value=0,
+            step=1
+        )
 
-            st.rerun()
+        submitted = st.form_submit_button(
+            "Add Player"
+        )
 
-        else:
+        if submitted:
 
-            st.error(message)
+            success, message = app.add_player(
+                name,
+                runs,
+                balls
+            )
+
+            if success:
+
+                st.success(message)
+
+                st.rerun()
+
+            else:
+
+                st.error(message)
 
 
 # ==========================================
 # Update Player
 # ==========================================
 
-st.sidebar.header("✏️ Update Player")
+if AuthorizationService.can_modify(st.session_state.role):
+    st.sidebar.header("✏️ Update Player")
 
-player_names = [
-    player.get_name()
-    for player in app.get_players()
-]
+    player_names = [
+        player.get_name()
+        for player in app.get_players()
+    ]
 
-if player_names:
+    if player_names:
 
-    selected_name = st.sidebar.selectbox(
-        "Select Player",
-        player_names,
-        key="update_player_select"
-    )
-
-    selected_player = app.get_team().search_player(
-        selected_name
-    )
-
-    if selected_player:
-
-        new_name = st.sidebar.text_input(
-            "New Name",
-            value=selected_player.get_name(),
-            key=f"update_name_{selected_name}"
+        selected_name = st.sidebar.selectbox(
+            "Select Player",
+            player_names,
+            key="update_player_select"
         )
 
-        new_runs = st.sidebar.number_input(
-            "New Runs",
-            min_value=0,
-            value=selected_player.get_runs(),
-            step=1,
-            key=f"update_runs_{selected_name}"
+        selected_player = app.get_team().search_player(
+            selected_name
         )
 
-        new_balls = st.sidebar.number_input(
-            "New Balls",
-            min_value=0,
-            value=selected_player.get_balls(),
-            step=1,
-            key=f"update_balls_{selected_name}"
-        )
+        if selected_player:
 
-        if st.sidebar.button(
-            "Update Player",
-            key="update_player_button"
-        ):
-
-            success, message = app.update_player(
-                selected_name,
-                new_name,
-                new_runs,
-                new_balls
+            new_name = st.sidebar.text_input(
+                "New Name",
+                value=selected_player.get_name(),
+                key=f"update_name_{selected_name}"
             )
 
-            if success:
+            new_runs = st.sidebar.number_input(
+                "New Runs",
+                min_value=0,
+                value=selected_player.get_runs(),
+                step=1,
+                key=f"update_runs_{selected_name}"
+            )
 
-                st.success(message)
+            new_balls = st.sidebar.number_input(
+                "New Balls",
+                min_value=0,
+                value=selected_player.get_balls(),
+                step=1,
+                key=f"update_balls_{selected_name}"
+            )
 
-                st.rerun()
+            if st.sidebar.button(
+                "Update Player",
+                key="update_player_button"
+            ):
 
-            else:
+                success, message = app.update_player(
+                    selected_name,
+                    new_name,
+                    new_runs,
+                    new_balls
+                )
 
-                st.error(message)
+                if success:
+
+                    st.success(message)
+
+                    st.rerun()
+
+                else:
+
+                    st.error(message)
 
 
 # ==========================================
 # Delete Player
 # ==========================================
 
-st.sidebar.header("🗑️ Delete Player")
+if AuthorizationService.can_modify(
+    st.session_state.role
+):
 
-delete_player_names = [
-    player.get_name()
-    for player in app.get_players()
-]
+    st.sidebar.header("🗑️ Delete Player")
 
-if delete_player_names:
+    delete_player_names = [
+        player.get_name()
+        for player in app.get_players()
+    ]
 
-    delete_name = st.sidebar.selectbox(
-        "Select Player to Delete",
-        delete_player_names,
-        key="delete_player_select"
-    )
+    if delete_player_names:
 
-    confirm_delete = st.sidebar.checkbox(
-        "I want to delete this player",
-        key="confirm_delete"
-    )
+        delete_name = st.sidebar.selectbox(
+            "Select Player to Delete",
+            delete_player_names,
+            key="delete_player_select"
+        )
 
-    if st.sidebar.button(
-        "🗑️ Delete Player",
-        key="delete_player_button"
-    ):
+        confirm_delete = st.sidebar.checkbox(
+            "I want to delete this player",
+            key="confirm_delete"
+        )
 
-        if not confirm_delete:
+        if st.sidebar.button(
+            "🗑️ Delete Player",
+            key="delete_player_button"
+        ):
 
-            st.warning(
-                "Please confirm deletion first."
-            )
+            if not confirm_delete:
 
-        else:
-
-            success, message = app.delete_player(
-                delete_name
-            )
-
-            if success:
-
-                st.success(message)
-
-                st.rerun()
+                st.warning(
+                    "Please confirm deletion first."
+                )
 
             else:
 
-                st.error(message)
+                success, message = app.delete_player(
+                    delete_name
+                )
+
+                if success:
+
+                    st.success(message)
+
+                    st.rerun()
+
+                else:
+
+                    st.error(message)
 
 # ==========================================
 # Player Table
@@ -517,7 +633,7 @@ if st.sidebar.button(
             "Scorecard loaded successfully."
         )
 
-        st.rerun()
+        #st.rerun()
 
     else:
 
@@ -525,71 +641,78 @@ if st.sidebar.button(
             "Unable to load scorecard."
         )
 
-if st.sidebar.button(
-    "💾 Save Changes",
-    key="save_changes"
+if AuthorizationService.can_modify(
+    st.session_state.role
 ):
+    if st.sidebar.button(
+        "💾 Save Changes",
+        key="save_changes"
+    ):
 
-    if app.save():
+        if app.save():
 
-        st.success(
-            "Changes saved successfully."
-        )
+            st.success(
+                "Changes saved successfully."
+            )
 
-    else:
+        else:
 
-        st.error(
-            "Unable to save scorecard."
-        )
+            st.error(
+                "Unable to save scorecard."
+            )
 
 # ==========================================
 # PDF Report
 # ==========================================
 
-st.header("📄 Team Report")
-
-if st.button(
-    "📄 Generate PDF Report",
-    key="generate_pdf"
+if AuthorizationService.can_modify(
+    st.session_state.role
 ):
+    st.header("📄 Team Report")
 
-    try:
+    if st.button(
+        "📄 Generate PDF Report",
+        key="generate_pdf"
+    ):
 
-        # Generate latest charts
-        app.generate_charts()
+        try:
 
-        # Generate PDF
-        pdf_filename = app.generate_pdf()
+            # Generate latest charts
+            app.generate_charts()
 
-        st.session_state.pdf_filename = pdf_filename
+            # Generate PDF
+            pdf_filename = app.generate_pdf()
 
-        st.success(
-            "PDF report generated successfully."
-        )
+            st.session_state.pdf_filename = pdf_filename
 
-    except Exception as e:
+            st.success(
+                "PDF report generated successfully."
+            )
 
-        st.error(
-            str(e)
-        )
-        
-# ==========================================
-# Download PDF
-# ==========================================
+        except Exception as e:
 
-if "pdf_filename" in st.session_state:
+            st.error(
+                str(e)
+            )
+            
+    # ==========================================
+    # Download PDF
+    # ==========================================
 
-    pdf_filename = st.session_state.pdf_filename
+    if "pdf_filename" in st.session_state:
 
-    with open(
-        pdf_filename,
-        "rb"
-    ) as pdf_file:
+        pdf_filename = st.session_state.pdf_filename
 
-        st.download_button(
-            label="⬇️ Download PDF Report",
-            data=pdf_file,
-            file_name="Cricket_Team_Report.pdf",
-            mime="application/pdf",
-            key="download_pdf"
-        )
+        with open(
+            pdf_filename,
+            "rb"
+        ) as pdf_file:
+
+            st.download_button(
+                label="⬇️ Download PDF Report",
+                data=pdf_file,
+                file_name="Cricket_Team_Report.pdf",
+                mime="application/pdf",
+                key="download_pdf"
+            )
+            
